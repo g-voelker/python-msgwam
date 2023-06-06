@@ -8,7 +8,86 @@ grid = None                 # grid for mean flow wind (only 1D at this point)
 grids = None                # staggered grid for mean flow wind (only 1D at this point)
 rhobar = 1                  # define hyfdrostatic pressure (only 1d background at this point)
 model_config = {}           # initialize global model config
-statics = {}
+statics = {}                # static variables
+nray_max = 100              # maximum number of rays
+
+
+class Ray:
+    """_summary_
+    """
+    
+    count = 0
+    lon = np.zeros((nray_max, 1))
+    lat = np.zeros((nray_max, 1))
+    r = np.zeros((nray_max, 1))
+    dr = np.zeros((nray_max, 1))
+    k = np.zeros((nray_max, 1))
+    l = np.zeros((nray_max, 1))
+    m = np.zeros((nray_max, 1))
+    dm = np.zeros((nray_max, 1))
+    dens = np.zeros((nray_max, 1))
+    volume = np.zeros((nray_max, 1))
+    
+    def __init__(self, lon, lat, r, dr, k, l, m, dens, volume=None):
+        """_summary_
+
+        Args:
+            lon (_type_): _description_
+            lat (_type_): _description_
+            r (_type_): _description_
+            dr (_type_): _description_
+            k (_type_): _description_
+            l (_type_): _description_
+            m (_type_): _description_
+            dens (_type_): _description_
+            volume (_type_, optional): _description_. Defaults to None.
+        """
+        
+        if Ray.count == nray_max:
+            raise ValueError('Trying to allocate more than allowed ray volumes.')
+        
+        self.id = Ray.count
+        
+        if not volume:
+            Ray.volume[self.id] = 5e-5 * dr
+        else:
+            Ray.volume[self.id] = volume
+        
+        Ray.lon[self.id] = lon
+        Ray.lat[self.id] = lat
+        Ray.r[self.id] = r
+        Ray.dr[self.id] = dr
+        Ray.k[self.id] = k
+        Ray.l[self.id] = l
+        Ray.m[self.id] = m
+        Ray.dens[self.id] = dens
+        Ray.dm[self.id] = Ray.volume[self.id] / Ray.dr[self.id]
+        
+        self.lon = Ray.lon[self.id]
+        self.lat = Ray.lat[self.id]
+        self.r = Ray.r[self.id]
+        self.dr = Ray.dr[self.id]
+        self.k = Ray.k[self.id]
+        self.l = Ray.l[self.id]
+        self.m = Ray.m[self.id]
+        self.dm = Ray.dm[self.id]
+        
+        Ray.count += 1
+
+def reset_rays():
+    """_summary_
+    """
+    Ray.count = 0
+    Ray.lon *= 0
+    Ray.lat *= 0
+    Ray.r *= 0
+    Ray.dr *= 0
+    Ray.k *= 0
+    Ray.l *= 0
+    Ray.m *= 0
+    Ray.dm *= 0
+    Ray.dens *= 0
+    Ray.volume *= 0
 
 
 def set_statics(**kwargs):
@@ -16,9 +95,9 @@ def set_statics(**kwargs):
     Set constants for the model run. 
     Defaults are:
     
-    int_dll = 1     (width in l-direction)
-    int_dkk = 1     (width in k-direction)
-    rr_mm_area = 0  (r-m area / phase space ray volume)
+    int_dl = 1     (width in l-direction)
+    int_dk = 1     (width in k-direction)
+    r_m_area = 0  (r-m area / phase space ray volume)
     
     """
     new_statics = locals()['kwargs']
@@ -90,7 +169,7 @@ def get_model_setup():
 
 
 def wave_projection(dens, lam, phi, rr_low, rr_up,
-                    kk, ll, mm_low, mm_up, dkk, dll, dmm,
+                    kk, ll, mm_low, mm_up, dk, dl, dmm,
                     grid, var=0):
     """
     Project the wave property onto the grid for diagnostics and wave-mean-flow coupling. Choose one of the fololowing:
@@ -110,8 +189,8 @@ def wave_projection(dens, lam, phi, rr_low, rr_up,
         ll      (ndarray) : hor. wave number in y-direction of rays
         mm_low  (ndarray) : vert. wave number at lower edge of rays
         mm_up   (ndarray) : vert. wave number at upper edge of rays
-        dkk     (ndarray) : ray volume extent in kk-direction
-        dll     (ndarray) : ray volume extent in ll-direction
+        dk     (ndarray) : ray volume extent in kk-direction
+        dl     (ndarray) : ray volume extent in ll-direction
         dmm     (ndarray) : ray volume extent in mm-direction
         grid    (ndarray) : vertical grid for projection
         var     (int)     : choice of variable
@@ -134,7 +213,7 @@ def wave_projection(dens, lam, phi, rr_low, rr_up,
         idx[np.where(idx >= nzmax)] = nzmax
         idx[out_of_domain] = -99999
 
-    phase_space_vol = abs(dkk * dll * dmm) #  * RAD_EARTH**2 * np.cos(phi))
+    phase_space_vol = abs(dk * dl * dmm) #  * RAD_EARTH**2 * np.cos(phi))
 
     cgr = cg_rr(
         kk, ll,
@@ -237,8 +316,8 @@ def velocities_tanh(lam, phi, rr):
     u0 = model_config['u0']
     phi0 = model_config['phi0']
     sig_phi = model_config['sig_phi']
-    rr0 = model_config['rr0']
-    sig_rr = model_config['sig_rr']
+    rr0 = model_config['r0']
+    sig_rr = model_config['sig_r']
 
     exponential = np.exp(-(phi - phi0)**2 / 2 / sig_phi**2) * (np.tanh((rr - rr0) / sig_rr) + 1) * 0.5
 
@@ -263,8 +342,8 @@ def velocities_tanh_homogeneous(rr):
     """
     
     u0 = model_config['u0']
-    rr0 = model_config['rr0']
-    sig_rr = model_config['sig_rr']
+    rr0 = model_config['r0']
+    sig_rr = model_config['sig_r']
 
     exponential = (np.tanh((rr - rr0) / sig_rr) + 1) * 0.5
 
@@ -288,8 +367,8 @@ def velocities_gauss_homogeneous(rr):
     return_array = np.zeros(rr.shape)
     
     u0 = model_config['u0']
-    rr0 = model_config['rr0']
-    sig_rr = model_config['sig_rr']
+    rr0 = model_config['r0']
+    sig_rr = model_config['sig_r']
     
     exponential = np.exp(-(rr - rr0)**2 / 2 / sig_rr**2)
 
@@ -316,8 +395,8 @@ def velocities_sine_homogeneous(rr):
     """
     
     u0 = model_config['u0']
-    rr0 = model_config['rr0']
-    sig_rr = model_config['sig_rr']
+    rr0 = model_config['r0']
+    sig_rr = model_config['sig_r']
 
     exponential = .5 * (np.tanh((rr - rr0) / sig_rr) + 1)
     uu = u0 * exponential * np.sin(rr / sig_rr * 2 * np.pi)
@@ -582,21 +661,21 @@ def saturation(dt, dens, rr_center, rr_center_st, drr, drr_st, kk, ll, mm_center
     phi0 = model_config['phi0']
     NN = model_config['bvf']
     kappa = model_config['kappa']
-    dkk = statics['dkk']
-    dll = statics['dll']
-    rr_mm_area = statics['rr_mm_area']
+    dk = statics['dk']
+    dl = statics['dl']
+    r_m_area = statics['r_m_area']
     
     ff = 2 * ROT_EARTH * np.sin(phi0)
     
     rr_final = rr_center + rr_center_st * dt
     drr_final = drr + drr_st * dt
     mm_final = mm_center + mm_center_st * dt
-    dmm_final = rr_mm_area / drr_final
+    dmm_final = r_m_area / drr_final
     rhobar_final = np.interp(rr_final, grids, rhobar)
     
     omh = omega(kk, ll, mm_center, phi0)
     
-    phase_volume = dkk * dll * dmm_final
+    phase_volume = dk * dl * dmm_final
     
     max_dens_final = kappa**2 * .5 * rhobar_final * omh * NN**2 / mm_final**2 / (omh**2 - ff**2)
     
@@ -606,6 +685,9 @@ def saturation(dt, dens, rr_center, rr_center_st, drr, drr_st, kk, ll, mm_center
     if direct:
         dens_new = dens.copy()
         dens_new[idx] = max_dens_final[idx]
+        
+        # update wave action density to saturated values
+        Ray.dens[:Ray.count, 0] = dens_new
         
         return dens_new
     
@@ -627,9 +709,9 @@ def rhs_default(dt, var_in):
     right_hand_side                     # characteristic derivatives of state vector variables
     """
     dens, lam, phi, rr, drr, kk, ll, mm, dmm, uu, vv = var_in
-    dkk = statics['dkk']
-    dll = statics['dll']
-    rr_mm_area = statics['rr_mm_area']
+    dk = statics['dk']
+    dl = statics['dl']
+    r_m_area = statics['r_m_area']
     saturate_online = model_config['saturate_online']
     
     cgr_up = cg_rr(kk, ll, mm, lam, phi, rr + .5 * drr)
@@ -639,8 +721,8 @@ def rhs_default(dt, var_in):
     dphi_st = cg_phi(kk, ll, mm, lam, phi, rr, uu, vv) / (RAD_EARTH + rr)
     drr_st = .5 * (cgr_down + cgr_up)
     ddrr_st = cgr_up - cgr_down
-    dkk_st = dk_dt(kk, ll, mm, lam, phi, rr, uu, vv)
-    dll_st = dl_dt(kk, ll, mm, lam, phi, rr, uu, vv)
+    dk_st = dk_dt(kk, ll, mm, lam, phi, rr, uu, vv)
+    dl_st = dl_dt(kk, ll, mm, lam, phi, rr, uu, vv)
     dmm_st = dm_dt(kk, ll, mm, lam, phi, rr, uu, vv)
     ddmm_st = dmm / drr * ddrr_st
     
@@ -654,7 +736,7 @@ def rhs_default(dt, var_in):
     pm_flux[:, 1:-1] = wave_projection(
         dens, lam, phi, rr - .5*drr, rr + .5*drr,
         kk, ll, mm - .5*dmm, mm + .5*dmm,
-        dkk, dll, dmm, grids
+        dk, dl, dmm, grids
     )
     pm_flux[:, 0] = pm_flux[:, 1]
     pm_flux[:, -1] = pm_flux[:, -2]
@@ -668,7 +750,7 @@ def rhs_default(dt, var_in):
     right_hand_side = np.array([
         dens_st, dlam_st, dphi_st,
         drr_st, ddrr_st,
-        dkk_st, dll_st,
+        dk_st, dl_st,
         dmm_st, ddmm_st,
         du_st, dv_st
     ], dtype=object)
@@ -677,19 +759,34 @@ def rhs_default(dt, var_in):
 
 
 
-def RK3(dt, var):
+def RK3(dt, uu, vv):
     """
     Integrate the state vector by dt with given right hand side function.
     
     inputs
     dt      (float)  : time step to integrate
-    var_in  (ndarray): input state vector, must correspond to used right hand side
     
     output
     var_out (ndarray): updated state vector
     """
     rhs_ = model_config['rhs']
     
+    # copy state variable from Ray class attributes
+    var = np.array([
+        Ray.dens[:Ray.count, 0],
+        Ray.lon[:Ray.count, 0],
+        Ray.lat[:Ray.count, 0],
+        Ray.r[:Ray.count, 0],
+        Ray.dr[:Ray.count, 0],
+        Ray.k[:Ray.count, 0],
+        Ray.l[:Ray.count, 0],
+        Ray.m[:Ray.count, 0],
+        Ray.dm[:Ray.count, 0],
+        uu,
+        vv
+    ], dtype=object)
+    
+    # integrate
     qq = dt * rhs_(dt, var)
     var = var + qq / 3
     qq = dt * rhs_(dt, var) - 5 / 9 * qq
@@ -697,6 +794,12 @@ def RK3(dt, var):
     qq = dt * rhs_(dt, var) - 153 / 128 * qq
     var = var + 8 / 15 * qq
 
+    # copy state variable to Ray class attributes
+    Ray.dens[:Ray.count, 0], Ray.lon[:Ray.count, 0], Ray.lat[:Ray.count, 0], \
+        Ray.r[:Ray.count, 0], Ray.dr[:Ray.count, 0], \
+        Ray.k[:Ray.count, 0], Ray.l[:Ray.count, 0], \
+        Ray.m[:Ray.count, 0], Ray.dm[:Ray.count, 0] = var[:-2]
+    
     return var
 
 
@@ -705,9 +808,9 @@ set_model_setup(
     u0 = 80,
     phi0 = np.deg2rad(-60),
     sig_phi = np.deg2rad(3),
-    rr0 = 30000,
-    rr1 = 40000,
-    sig_rr = 10000,
+    r0 = 30000,
+    r1 = 40000,
+    sig_r = 10000,
     drr = 1,
     bvf = 0.01,
     rhs = rhs_default,
@@ -720,7 +823,7 @@ set_model_setup(
 )
 
 set_statics(
-    int_dll = 1,
-    int_dkk = 1,
-    rr_mm_area = 0
+    int_dl = 1,
+    int_dk = 1,
+    r_m_area = 0
 )
