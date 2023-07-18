@@ -95,8 +95,6 @@ class MeanFlow:
         pmf[0, 1:-1] = self.project(rays, data * rays.k, self.r_centers)
         pmf[1, 1:-1] = self.project(rays, data * rays.l, self.r_centers)
 
-        config.qqq = pmf[0]
-
         pmf[:, 0] = pmf[:, 1]
         pmf[:, -1] = pmf[:, -2]
         
