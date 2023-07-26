@@ -26,19 +26,23 @@ class RayCollection:
 
     dens: np.ndarray
 
-    def __init__(self, mean: MeanFlow) -> None:
+    def __init__(self, data: np.ndarray, count: int) -> None:
+        """Initialize a RayCollection."""
+
+        self.data = data
+        self.count = count
+
+    def __add__(self, other: np.ndarray) -> RayCollection:
         """
-        Initialize a RayCollection. The density profile in the MeanFlow object
-        passed as an argument will be used to initialize rays according to the
-        configuration settings.
+        Return a new collection of rays with data equal to the sum of the data
+        in this collection and the values in another array. Defined to make
+        writing time-stepping routines easier. 
         """
 
-        self.count = 0
+        if other.shape != self.data.shape:
+            raise ValueError('other does not have correct shape')
 
-        n_properties = len(self.names)
-        self.data = np.nan * np.zeros((n_properties, config.nray_max))
-
-        self.init_rays(mean)
+        return RayCollection(self.data + other, self.count)
 
     def __getattr__(self, name: str) -> Any:
         """
@@ -54,55 +58,6 @@ class RayCollection:
         message = f'{type(self).__name__} object has no attribute {name}'
         raise AttributeError(message)
 
-    def __add__(self, other: np.ndarray) -> RayCollection:
-        """
-        Add the data in an array to the data underlying this collection and
-        return the collection. Defined to make time-stepping easier.
-        """
-
-        if other.shape != self.data.shape:
-            raise ValueError('other does not have correct shape')
-
-        self.data += other
-
-        return self
-
-    def init_rays(self, mean: MeanFlow):
-        """Initialize ray volumes according to the configuration settings."""
-
-        k_abs = 2 * np.pi / config.wvl_hor_init
-        direction = np.deg2rad(config.direction)
-
-        k = k_abs * np.sin(direction)
-        l = k_abs * np.cos(direction)
-        m = -2 * np.pi / config.wvl_ver_init
-
-        r_min, r_max = config.r_init_bounds
-        r_edges = np.linspace(r_min, r_max, config.nray + 1)
-        r = (r_edges[:-1] + r_edges[1:]) / 2
-
-        dr = r_edges[1] - r_edges[0]
-        dm = config.r_m_area / dr
-
-        rhobar = np.interp(r, mean.r_centers, mean.rho)
-        omega_hat = self.omega_hat(k, l, m)
-
-        amplitude = (
-            (config.alpha ** 2 * rhobar * omega_hat * config.N0 ** 2) /
-            (2 * m ** 2 * (omega_hat **2 - config.f0 ** 2))
-        )
-
-        profile = np.exp(-0.5 * ((r - r.mean()) / 2000) ** 2)
-        dens = amplitude * profile / (config.dk_init * config.dl_init * dm)
-
-        for i in range(config.nray):
-            self.add_ray(
-                lon=0, lat=config.phi0,
-                r=r[i], dr=dr,
-                k=k, l=l, m=m,
-                dens=dens[i]
-            )
-
     def add_ray(
         self,
         lon: float, lat: float,
@@ -114,6 +69,9 @@ class RayCollection:
         Add a ray to the collection. dm will be chosen in accordance with the
         value provided for config.r_m_area. 
         """
+
+        if self.count == config.nray_max:
+            raise RuntimeError('trying to add too many ray volumes')
 
         self.lon[self.count] = lon
         self.lat[self.count] = lat
@@ -211,7 +169,6 @@ class RayCollection:
         self,
         mean: MeanFlow,
         r: Optional[np.ndarray]=None,
-        dr: Optional[np.ndarray]=None,
         m: Optional[np.ndarray]=None
     ) -> np.ndarray:
         """
@@ -222,7 +179,6 @@ class RayCollection:
         """
 
         r = self.r if r is None else r
-        dr = self.dr if dr is None else r
         m = self.m if m is None else m
 
         rhobar = np.interp(r, mean.r_centers, mean.rho)
@@ -232,3 +188,92 @@ class RayCollection:
             (0.5 * config.kappa ** 2 * rhobar * omega_hat * config.N0 ** 2) /
             (m ** 2 * (omega_hat ** 2 - config.f0 ** 2))
         )
+
+    def drays_dt(self, mean: MeanFlow) -> np.ndarray:
+        """Calculate a time tendency for each property in the collection."""
+
+        cg_r_down = self.cg_r(self.r - 0.5 * self.dr)
+        cg_r_up = self.cg_r(self.r + 0.5 * self.dr)
+        dr_dt = (cg_r_down + cg_r_up) / 2
+        ddr_dt = cg_r_up - cg_r_down
+
+        if config.hprop:
+            raise NotImplementedError('horizontal propagation not implemented')
+
+        else:
+            dlon_dt = np.zeros(config.nray_max)
+            dlat_dt = np.zeros(config.nray_max)
+            dk_dt = np.zeros(config.nray_max)
+            dl_dt = np.zeros(config.nray_max)
+
+        dm_dt = self.dm_dt(mean)
+        ddm_dt = ddr_dt * self.dm / self.dr
+
+        ddens_dt = np.zeros(config.nray_max)
+        if config.saturate_online:
+            r_next = self.r + config.dt * dr_dt
+            m_next = self.m + config.dt * dm_dt
+
+            dr_next = self.dr + config.dt * ddr_dt
+            dm_next = config.r_m_area / dr_next
+
+            max_dens = self.max_dens(mean, r_next, m_next)
+            volume = config.dk_init * config.dl_init * dm_next
+            idx = self.dens * volume > max_dens
+
+            ddens_dt[idx] = (max_dens - self.dens)[idx] / config.dt
+
+        return np.vstack((
+            dlon_dt,
+            dlat_dt,
+            dr_dt,
+            ddr_dt,
+            dk_dt,
+            dl_dt,
+            dm_dt,
+            ddm_dt,
+            ddens_dt
+        ))
+
+    @classmethod
+    def from_config(cls, mean: MeanFlow) -> RayCollection:
+        """Initialize ray volumes according to the configuration settings."""
+
+        n_properties = len(cls.names)
+        data = np.nan * np.zeros((n_properties, config.nray_max))
+        rays = cls(data, 0)
+
+        k_abs = 2 * np.pi / config.wvl_hor_init
+        direction = np.deg2rad(config.direction)
+
+        k = k_abs * np.sin(direction)
+        l = k_abs * np.cos(direction)
+        m = -2 * np.pi / config.wvl_ver_init
+
+        r_min, r_max = config.r_init_bounds
+        r_edges = np.linspace(r_min, r_max, config.nray + 1)
+        r = (r_edges[:-1] + r_edges[1:]) / 2
+
+        dr = r_edges[1] - r_edges[0]
+        dm = config.r_m_area / dr
+
+        rhobar = np.interp(r, mean.r_centers, mean.rho)
+        omega_hat = rays.omega_hat(k, l, m)
+
+        amplitude = (
+            (config.alpha ** 2 * rhobar * omega_hat * config.N0 ** 2) /
+            (2 * m ** 2 * (omega_hat **2 - config.f0 ** 2))
+        )
+
+        profile = np.exp(-0.5 * ((r - r.mean()) / 2000) ** 2)
+        dens = amplitude * profile / (config.dk_init * config.dl_init * dm)
+
+        for i in range(config.nray):
+            rays.add_ray(
+                lon=0, lat=config.phi0,
+                r=r[i], dr=dr,
+                k=k, l=l, m=m,
+                dens=dens[i]
+            )
+
+        return rays

@@ -1,4 +1,3 @@
-geostrophy: true
 boussinesq: false
 saturate_online: false
 hprop: false

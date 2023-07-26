@@ -1,4 +1,5 @@
 from __future__ import annotations
+from copy import copy
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
@@ -22,17 +23,20 @@ class MeanFlow:
 
     def __add__(self, other: np.ndarray) -> MeanFlow:
         """
-        Add the data in an array to the u and v profiles underlying this mean
-        flow and return the same object. Defined to make time-stepping easier.
+        Return a new MeanFlow object sharing the same background profiles
+        (density and pressure gradients) but with velocities equal to those of
+        this object added to the data in other. Definied to make writing
+        time-stepping routines easier.
         """
 
         if other.shape != (2, len(self.r_centers)):
             raise ValueError('other does not have correct shape')
 
-        self.u += other[0]
-        self.v += other[1]
+        output = copy(self)
+        output.u = self.u + other[0]
+        output.v = self.v + other[1]
 
-        return self
+        return output
 
     def init_rho(self) -> np.ndarray:
         if config.boussinesq:
@@ -75,9 +79,12 @@ class MeanFlow:
         if grid is None:
             grid = self.r_faces
 
-        r_mins = np.maximum(rays.r - 0.5 * rays.dr, grid[:-1, None])
-        r_maxs = np.minimum(rays.r + 0.5 * rays.dr, grid[1:, None])
-        fracs = np.maximum(r_maxs - r_mins, 0) / rays.dr
+        r_lo = rays.r - 0.5 * rays.dr
+        r_hi = rays.r + 0.5 * rays.dr
+
+        r_mins = np.maximum(r_lo, grid[:-1, None])
+        r_maxs = np.minimum(r_hi, grid[1:, None])
+        fracs = np.maximum(r_maxs - r_mins, 0) / (grid[1] - grid[0])
 
         return np.nansum(fracs * data, axis=1)
 
@@ -88,7 +95,7 @@ class MeanFlow:
         """
 
         cg_r = rays.cg_r()
-        volume = config.dk_init * config.dl_init * rays.dm
+        volume = abs(config.dk_init * config.dl_init * rays.dm)
         data = cg_r * rays.dens * volume
 
         pmf = np.zeros((2, len(self.r_faces)))
@@ -97,8 +104,8 @@ class MeanFlow:
 
         pmf[:, 0] = pmf[:, 1]
         pmf[:, -1] = pmf[:, -2]
-        
-        dpmf_dr = (pmf[:, 1:] - pmf[:, :-1]) / self.dr
+
+        dpmf_dr = np.diff(pmf, axis=1) / self.dr
         du_dt = config.f0 * self.v - (self.dp_dx + dpmf_dr[0]) / self.rho
         dv_dt = -config.f0 * self.u - (self.dp_dy + dpmf_dr[1]) / self.rho
 
