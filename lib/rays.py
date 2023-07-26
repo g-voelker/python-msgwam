@@ -169,24 +169,27 @@ class RayCollection:
         self,
         mean: MeanFlow,
         r: Optional[np.ndarray]=None,
-        m: Optional[np.ndarray]=None
+        m: Optional[np.ndarray]=None,
+        dm: Optional[np.ndarray]=None,
     ) -> np.ndarray:
         """
         Calculate the maximum wave action density allowed for each wave based on
-        the wave action saturation criterion. r, dr, and m can be passed in as
+        the wave action saturation criterion. r, m, and dm can be passed in as
         optional arguments, so that future values can be used for online
         saturation. Otherwise, the values from the collection will be used.
         """
 
         r = self.r if r is None else r
         m = self.m if m is None else m
+        dm = self.dm if dm is None else dm
 
         rhobar = np.interp(r, mean.r_centers, mean.rho)
+        volume = config.dk_init * config.dl_init * dm
         omega_hat = self.omega_hat(m=m)
 
         return (
             (0.5 * config.kappa ** 2 * rhobar * omega_hat * config.N0 ** 2) /
-            (m ** 2 * (omega_hat ** 2 - config.f0 ** 2))
+            (volume * m ** 2 * (omega_hat ** 2 - config.f0 ** 2))
         )
 
     def drays_dt(self, mean: MeanFlow) -> np.ndarray:
@@ -217,9 +220,8 @@ class RayCollection:
             dr_next = self.dr + config.dt * ddr_dt
             dm_next = config.r_m_area / dr_next
 
-            max_dens = self.max_dens(mean, r_next, m_next)
-            volume = config.dk_init * config.dl_init * dm_next
-            idx = self.dens * volume > max_dens
+            max_dens = self.max_dens(mean, r_next, m_next, dm_next)
+            idx = self.dens > max_dens
 
             ddens_dt[idx] = (max_dens - self.dens)[idx] / config.dt
 

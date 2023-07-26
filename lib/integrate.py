@@ -14,23 +14,20 @@ def RK3(
 ) -> tuple[MeanFlow, RayCollection]:
     """Advance the state of the system with an RK3 step."""
 
-    delta = 0
-    state = np.array([mean, rays])
-
+    p, q = 0, 0
     for a, b in zip(_as, _bs):
         dmean_dt = mean.dmean_dt(rays)
         drays_dt = rays.drays_dt(mean)
-        dstate_dt = np.array([dmean_dt, drays_dt], dtype=object)
 
-        delta = config.dt * dstate_dt + a * delta
-        state = state + b * delta
+        p = config.dt * dmean_dt + a * p
+        q = config.dt * drays_dt + a * q
 
-    mean, rays = state
+        mean = mean + b * p
+        rays = rays + b * q
+
     if not config.saturate_online:
         max_dens = rays.max_dens(mean)
-        volume = abs(config.dk_init * config.dl_init * rays.dm)
-        idx = rays.dens * volume > max_dens
-
+        idx = rays.dens > max_dens
         rays.dens[idx] = max_dens[idx]
 
     return mean, rays
