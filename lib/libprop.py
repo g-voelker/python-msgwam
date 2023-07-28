@@ -684,7 +684,7 @@ def saturation(dt, dens, rr_center, rr_center_st, drr, drr_st, kk, ll, mm_center
     
     if direct:
         dens_new = dens.copy()
-        dens_new[idx] = max_dens_final[idx]
+        dens_new[idx] = max_dens_final[idx] / phase_volume[idx]
         
         # update wave action density to saturated values
         Ray.dens[:Ray.count, 0] = dens_new
@@ -692,7 +692,7 @@ def saturation(dt, dens, rr_center, rr_center_st, drr, drr_st, kk, ll, mm_center
         return dens_new
     
     for nn in idx:
-        dens_st[nn] = (max_dens_final[nn] - dens[nn]) / dt
+        dens_st[nn] = (max_dens_final[nn] / phase_volume[nn] - dens[nn]) / dt
     
     return dens_st
 

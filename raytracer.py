@@ -184,11 +184,13 @@ for nt in range(1, nt_max + 1):
     if not lprop.model_config['saturate_online']:
         # calculate saturated wave action density
         int_dens[nt] = lprop.saturation(
-            dt, int_dens_prop[nt], int_r[nt-1], (int_r[nt] - int_r[nt-1]) / 1,
+            dt, int_dens_prop[nt], int_r[nt-1], (int_r[nt] - int_r[nt-1]) / dt,
             int_dr[nt-1], (int_dr[nt] - int_dr[nt-1]) / dt,
             int_k[nt], int_l[nt], int_m[nt-1],
             (int_m[nt] - int_m[nt-1]) / dt, direct=True
         )
+    else:
+        int_dens[nt] = int_dens_prop[nt]
         
     # output the progress in %
     print('progress: {0:.2f}%'.format(nt / nt_max * 100), end='\r')
