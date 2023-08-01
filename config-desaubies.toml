@@ -1,0 +1,37 @@
+boussinesq = false
+saturate_online = false
+hprop = false
+
+dt = 120
+n_day = 3
+
+n_grid = 101
+grid_max = 100e3
+
+phi0 = 0
+rhobar0 = 1.2
+hh = 8.5e3
+
+N0 = 0.01
+alpha = 0.01
+kappa = 1
+
+uv_init_method = "sine_homogeneous"
+u0 = 4
+r0 = 40e3
+sig_r = 10e3
+
+source_method = "desaubies"
+n_ray_max = 100
+
+c_tilde_bounds = [0, 36]
+omega_tilde_bounds = [1e-4, 5e-4]
+
+n_c_tilde = 6
+n_omega_tilde = 2
+
+wvl_ver_char = 5e3
+bc_mom_flux = 2e-3
+
+r_launch = 15e3
+dr_init = 250

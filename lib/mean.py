@@ -13,7 +13,7 @@ class MeanFlow:
     def __init__(self) -> None:
         """Initialize a mean flow."""
 
-        self.r_faces = np.linspace(0, config.grid_max, config.ngrid)
+        self.r_faces = np.linspace(0, config.grid_max, config.n_grid)
         self.r_centers = (self.r_faces[:-1] + self.r_faces[1:]) / 2
         self.dr = self.r_faces[1] - self.r_faces[0]
 
@@ -95,7 +95,7 @@ class MeanFlow:
         """
 
         cg_r = rays.cg_r()
-        volume = abs(config.dk_init * config.dl_init * rays.dm)
+        volume = abs(rays.dk * rays.dl * rays.dm)
         data = cg_r * rays.dens * volume
 
         pmf = np.zeros((2, len(self.r_faces)))

@@ -1,6 +1,8 @@
 import numpy as np
 import xarray as xr
 
+from typing import Any
+
 from . import config
 from .mean import MeanFlow
 from .rays import RayCollection
@@ -14,7 +16,9 @@ def RK3(
 ) -> tuple[MeanFlow, RayCollection]:
     """Advance the state of the system with an RK3 step."""
 
-    p, q = 0, 0
+    p: float | np.ndarray = 0
+    q: float | np.ndarray = 0
+
     for a, b in zip(_as, _bs):
         dmean_dt = mean.dmean_dt(rays)
         drays_dt = rays.drays_dt(mean)
@@ -34,19 +38,19 @@ def RK3(
 
 def integrate() -> xr.Dataset:
     mean = MeanFlow()
-    rays = RayCollection.from_config(mean)
+    rays = RayCollection(mean)
 
     int_mean = [mean]
     int_rays = [rays]
 
-    for _ in range(1, config.nt_max):
+    for i in range(1, config.n_t_max):
         mean, rays = RK3(mean, rays)
         int_mean.append(mean)
         int_rays.append(rays)
 
-    data = {
-        'time' : config.dt * np.arange(config.nt_max),
-        'nray' : np.arange(config.nray_max),
+    data: dict[str, Any] = {
+        'time' : config.dt * np.arange(config.n_t_max),
+        'nray' : np.arange(config.n_ray_max),
         'grid' : int_mean[0].r_centers
     }
     
@@ -54,7 +58,7 @@ def integrate() -> xr.Dataset:
         stacked = np.vstack([getattr(mean, name) for mean in int_mean])
         data[name] = (('time', 'grid'), stacked)
 
-    for name in RayCollection.names:
+    for name in RayCollection.props:
         stacked = np.vstack([getattr(rays, name) for rays in int_rays])
         data[name] = (('time', 'nray'), stacked)
 
