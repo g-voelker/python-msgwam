@@ -298,14 +298,14 @@ class RayCollection:
     @overload
     def cg_r(
         self,
-        r: Optional[np.ndarray]=None,
-        k: Optional[np.ndarray]=None,
-        l: Optional[np.ndarray]=None,
-        m: Optional[np.ndarray]=None,
+        r: Optional[np.ndarray]=...,
+        k: Optional[np.ndarray]=...,
+        l: Optional[np.ndarray]=...,
+        m: Optional[np.ndarray]=...,
     ) -> np.ndarray:
         ...
 
-    def cg_r(self, r, k, l, m):
+    def cg_r(self, r=None, k=None, l=None, m=None):
         """
         Calculate the vertical group velocity.
 
