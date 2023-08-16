@@ -5,14 +5,14 @@ import numpy as np
 import xarray as xr
 
 def make_plots(ds: xr.Dataset, output_path: str) -> None:
-    fig, axes = plt.subplots(ncols=3)
-    fig.set_size_inches(12, 4)
+    fig, axes = plt.subplots(nrows=2, ncols=2)
+    fig.set_size_inches(8, 8)
 
     hours = ds['time'] / 3600
     u = ds['u'] - ds['u'].isel(time=0)
     amax = abs(u).max()
 
-    axes[0].pcolormesh(
+    axes[0, 0].pcolormesh(
         hours,
         ds['grid'] / 1000,
         u.T,
@@ -22,22 +22,23 @@ def make_plots(ds: xr.Dataset, output_path: str) -> None:
         shading='nearest'
     )
 
-    axes[0].set_title('$\\Delta u$ (m s$^{-1}$)')
-    axes[0].set_xlabel('time (hours)')
-    axes[0].set_ylabel('height (km)')
+    axes[0, 0].set_title('$\\Delta u$ (m s$^{-1}$)')
+    axes[0, 0].set_xlabel('time (hours)')
+    axes[0, 0].set_ylabel('height (km)')
 
-    plot_ray_property(hours, ds['r'] / 1000, axes[1])
-    plot_ray_property(hours, ds['dens'], axes[2])
+    plot_ray_property(hours, ds['r'] / 1000, axes[0, 1])
+    plot_ray_property(hours, ds['m'], axes[1, 0])
+    plot_ray_property(hours, ds['dens'], axes[1, 1])
 
-    axes[1].set_title('ray $r$')
-    axes[2].set_title('ray dens')
+    axes[0, 1].set_title('ray $r$')
+    axes[1, 0].set_title('ray $m$')
+    axes[1, 1].set_title('ray dens')
 
-    for ax in axes:
+    for ax in axes.flatten():
         ax.set_xlim(0, hours.max())
 
-    axes[0].set_ylim(0, 100)
-    axes[1].set_ylim(0, 100)
-    axes[2].set_ylim(0, 8.5e14)
+    axes[0, 0].set_ylim(0, 100)
+    axes[0, 1].set_ylim(0, 100)
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=400)

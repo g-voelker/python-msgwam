@@ -3,7 +3,7 @@ saturate_online = false
 hprop = false
 
 dt = 120
-n_day = 3
+n_day = 1
 
 n_grid = 101
 grid_max = 100e3
@@ -21,9 +21,8 @@ u0 = 4
 r0 = 40e3
 sig_r = 10e3
 
-source_method = "simple"
-n_ray_max = 100
-n_ray = 60
+source_method = "monochromatic"
+n_ray_max = 1000
 
 wvl_hor_char = 50e3
 wvl_ver_char = 5e3
@@ -31,5 +30,8 @@ direction = 0
 
 dk_init = 1e-4
 dl_init = 1e-4
-r_m_area = 5e-5
-r_init_bounds = [0, 15e3]
+dm_init = 2e-7
+
+bc_mom_flux = 2e-3
+r_launch = 15e3
+dr_init = 250

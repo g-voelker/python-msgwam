@@ -3,7 +3,7 @@ saturate_online = false
 hprop = false
 
 dt = 120
-n_day = 3
+n_day = 2
 
 n_grid = 101
 grid_max = 100e3
@@ -22,7 +22,7 @@ r0 = 40e3
 sig_r = 10e3
 
 source_method = "desaubies"
-n_ray_max = 100
+n_ray_max = 200
 
 c_tilde_bounds = [0, 36]
 omega_tilde_bounds = [1e-4, 5e-4]

@@ -1,7 +1,7 @@
 import argparse
 
-from lib.config import load_config
-from lib.integrate import integrate
+from .config import load_config
+from .integrate import integrate
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

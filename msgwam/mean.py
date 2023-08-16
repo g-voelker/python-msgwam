@@ -11,7 +11,10 @@ if TYPE_CHECKING:
 
 class MeanFlow:
     def __init__(self) -> None:
-        """Initialize a mean flow."""
+        """
+        Initialize a MeanFlow using the configuration settings. Note that
+        config.load_config must have been called for initialization to succeed.
+        """
 
         self.r_faces = np.linspace(0, config.grid_max, config.n_grid)
         self.r_centers = (self.r_faces[:-1] + self.r_faces[1:]) / 2
@@ -25,8 +28,25 @@ class MeanFlow:
         """
         Return a new MeanFlow object sharing the same background profiles
         (density and pressure gradients) but with velocities equal to those of
-        this object added to the data in other. Definied to make writing
+        this object added to the data in other. Defined to make writing
         time-stepping routines easier.
+
+        Parameters
+        ----------
+        other
+            Array of data to be added to the wind profiles (for example, the
+            calculated mean flow tendency multiplied by the time step).
+
+        Returns
+        -------
+        MeanFlow
+            MeanFlow with updated wind profiles.
+
+        Raises
+        ------
+        ValueError
+            Indicates that other does not have the correct shape.
+
         """
 
         if other.shape != (2, len(self.r_centers)):
@@ -39,12 +59,39 @@ class MeanFlow:
         return output
 
     def init_rho(self) -> np.ndarray:
+        """
+        Initialize the mean density profile depending on whether or not the
+        Boussinesq approximation is made.
+
+        Returns
+        -------
+        np.ndarray
+            Mean density profile at cell centers.
+
+        """
+
         if config.boussinesq:
             return config.rhobar0 * np.ones(self.r_centers.shape)
 
         return config.rhobar0 * np.exp(-self.r_centers / config.hh)
 
     def init_uv(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Initialize the mean wind profiles using the method identified in config.
+
+        Returns
+        -------
+        np.ndarray, np.ndarray
+            Mean u and v at cell centers.
+
+        Raises
+        ------
+        ValueError
+            Indicates that an unknown method was specified for initialization.
+            Currently, the only method implemented is sine_homogeneous.
+
+        """
+
         method = config.uv_init_method
         if method == 'sine_homogeneous':
             tanh = np.tanh((self.r_centers - config.r0) / config.sig_r) + 1
@@ -59,6 +106,18 @@ class MeanFlow:
         raise ValueError(message)
 
     def init_grad_p(self) -> np.ndarray:
+        """
+        Initialize the horizontal pressure gradients according to the
+        geostrophic approximation.
+
+        Returns
+        -------
+        np.ndarray
+            Array whose first and second rows correspond to the zonal and
+            meridional pressure gradients, respectively, at cell centers.
+
+        """
+
         return np.vstack((
             self.rho * config.f0 * self.v,
             -self.rho * config.f0 * self.u
@@ -71,9 +130,26 @@ class MeanFlow:
         grid: Optional[np.ndarray]=None
     ) -> np.ndarray:
         """
-        Project the values in data (which should be the same shape as the
-        properties stored in rays) onto vertical regions bounded by grid. If
-        grid is None, self.r_faces will be used.
+        Project ray volume data onto the vertical regions bounded by a grid.
+
+        Parameters
+        ----------
+        rays
+            RayCollection containing the current properties of all ray volumes.
+        data
+            The data to project (for example, pseudo-momentum fluxes). Should
+            have the same shape as the properties stored in rays.
+        grid, optional
+            The edges of the vertical regions to project onto. If None, then
+            the cell faces of the mean grid are used, such that the vertical
+            regions are the cells themselves.
+
+        Returns
+        -------
+        np.ndarray
+            Projected values at each vertical region. Has length one shorter
+            than that of the provided grid.
+
         """
 
         if grid is None:
@@ -90,8 +166,20 @@ class MeanFlow:
 
     def dmean_dt(self, rays: RayCollection) -> np.ndarray:
         """
-        Calculate du_dt and dv_dt, including the pseudomomentum flux divergence
-        contribution from ray volumes.
+        Calculate the time tendency of the mean wind, including Coriolis terms
+        and pseudomomentum flux divergences from the ray volumes.
+
+        Parameters
+        ----------
+        rays
+            RayCollection with current ray properties.
+
+        Returns
+        -------
+        np.ndarray
+            Array whose first and second rows are the time tendencies of the
+            zonal and meridional wind, respectively, at cell centers.
+            
         """
 
         cg_r = rays.cg_r()

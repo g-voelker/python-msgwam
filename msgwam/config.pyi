@@ -1,3 +1,6 @@
+def load_config(path: str) -> None:
+    ...
+
 boussinesq: bool
 saturate_online: bool
 hprop: bool
@@ -33,6 +36,7 @@ direction: float
 
 dk_init: float
 dl_init: float
+dm_init: float
 r_m_area: float
 
 r_init_bounds: tuple[float, float]
@@ -45,3 +49,4 @@ bc_mom_flux: float
 
 r_launch: float
 dr_init: float
+r_ghost: float
