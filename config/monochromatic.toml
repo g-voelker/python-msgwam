@@ -1,9 +1,10 @@
 boussinesq = false
 saturate_online = false
+filter_pmf = true
 hprop = false
 
 dt = 120
-n_day = 1
+n_day = 6
 
 n_grid = 101
 grid_max = 100e3
@@ -22,7 +23,7 @@ r0 = 40e3
 sig_r = 10e3
 
 source_method = "monochromatic"
-n_ray_max = 1000
+n_ray_max = 2500
 
 wvl_hor_char = 50e3
 wvl_ver_char = 5e3

@@ -1,5 +1,6 @@
 boussinesq = false
 saturate_online = false
+filter_pmf = true
 hprop = false
 
 dt = 120

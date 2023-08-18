@@ -72,13 +72,21 @@ def integrate() -> xr.Dataset:
     mean = MeanFlow()
     rays = RayCollection(mean)
 
+    to_centers = lambda a: np.vstack((
+        np.interp(mean.r_centers, mean.r_faces, a[0]),
+        np.interp(mean.r_centers, mean.r_faces, a[1]),
+    ))
+
     int_mean = [mean]
     int_rays = [rays]
+    int_pmf = [to_centers(mean.pmf(rays))]
 
-    for i in range(1, config.n_t_max):
+    for _ in range(1, config.n_t_max):
         mean, rays = RK3(mean, rays)
+
         int_mean.append(mean)
         int_rays.append(rays)
+        int_pmf.append(to_centers(mean.pmf(rays)))
 
     data: dict[str, Any] = {
         'time' : config.dt * np.arange(config.n_t_max),
@@ -93,5 +101,9 @@ def integrate() -> xr.Dataset:
     for name in RayCollection.props:
         stacked = np.vstack([getattr(rays, name) for rays in int_rays])
         data[name] = (('time', 'nray'), stacked)
+
+    stacked = np.stack(int_pmf).transpose(1, 0, 2)
+    data['pmf_u'] = (('time', 'grid'), stacked[0])
+    data['pmf_v'] = (('time', 'grid'), stacked[1])
 
     return xr.Dataset(data)

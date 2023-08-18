@@ -164,6 +164,39 @@ class MeanFlow:
 
         return np.nansum(fracs * data, axis=1)
 
+    def pmf(self, rays: RayCollection) -> np.ndarray:
+        """
+        Calculate the zonal and meridional pseudomomentum fluxes.
+
+        Parameters
+        ----------
+        rays
+            RayCollection with current ray properties.
+
+        Returns
+        -------
+        np.ndarray
+            Array of shape (2, config.n_grid) whose rows correspond to the zonal
+            and meridional pseudomomentum fluxes, respectively, at cell faces.
+
+        """
+
+        cg_r = rays.cg_r()
+        volume = abs(rays.dk * rays.dl * rays.dm)
+        data = cg_r * rays.dens * volume
+
+        pmf = np.zeros((2, len(self.r_faces)))
+        pmf[0, 1:-1] = self.project(rays, data * rays.k, self.r_centers)
+        pmf[1, 1:-1] = self.project(rays, data * rays.l, self.r_centers)
+
+        pmf[:, 0] = pmf[:, 1]
+        pmf[:, -1] = pmf[:, -2]
+
+        if config.filter_pmf:
+            pmf[:, 1:-1] = (pmf[:, :-2] + 2 * pmf[:, 1:-1] + pmf[:, 2:]) / 4
+
+        return pmf
+
     def dmean_dt(self, rays: RayCollection) -> np.ndarray:
         """
         Calculate the time tendency of the mean wind, including Coriolis terms
@@ -182,17 +215,7 @@ class MeanFlow:
             
         """
 
-        cg_r = rays.cg_r()
-        volume = abs(rays.dk * rays.dl * rays.dm)
-        data = cg_r * rays.dens * volume
-
-        pmf = np.zeros((2, len(self.r_faces)))
-        pmf[0, 1:-1] = self.project(rays, data * rays.k, self.r_centers)
-        pmf[1, 1:-1] = self.project(rays, data * rays.l, self.r_centers)
-
-        pmf[:, 0] = pmf[:, 1]
-        pmf[:, -1] = pmf[:, -2]
-
+        pmf = self.pmf(rays)
         dpmf_dr = np.diff(pmf, axis=1) / self.dr
         du_dt = config.f0 * self.v - (self.dp_dx + dpmf_dr[0]) / self.rho
         dv_dt = -config.f0 * self.u - (self.dp_dy + dpmf_dr[1]) / self.rho

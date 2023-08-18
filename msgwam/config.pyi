@@ -3,6 +3,7 @@ def load_config(path: str) -> None:
 
 boussinesq: bool
 saturate_online: bool
+filter_pmf: bool
 hprop: bool
 
 dt: float

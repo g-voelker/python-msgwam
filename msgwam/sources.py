@@ -118,12 +118,12 @@ def legacy(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
 
 def monochromatic(_, rays: RayCollection) -> np.ndarray:
     """
-    Calculate ray properties for a single volume at prescribed wavenumber.
+    Calculate source data for a single ray volume at presribed wavenumber
     """
-    
+
     r = config.r_launch
     dr = config.dr_init
-    
+
     wvn_hor = 2 * np.pi / config.wvl_hor_char
     direction = np.deg2rad(config.direction)
 
