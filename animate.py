@@ -13,7 +13,6 @@ def animate(ds: xr.Dataset, output_path: str) -> None:
 
     z = ds['grid'].values / 1000
     u = ds['u'].values
-    u = u - u[0]
 
     m = ds['m'].values
     r = ds['r'].values / 1000
@@ -34,9 +33,9 @@ def animate(ds: xr.Dataset, output_path: str) -> None:
     axes[2].set_xlim(m_min, m_max)
     axes[2].set_ylim(0, 100)
 
-    axes[0].set_xlabel('$\Delta u$ (m s$^{-1}$)')
+    axes[0].set_xlabel('$u$ (m s$^{-1}$)')
     axes[0].set_ylabel('$z$ (km)')
-    axes[0].set_title('mean wind anomaly')
+    axes[0].set_title('mean wind')
 
     axes[1].set_xlabel('$c_\mathrm{g} k\mathcal{A}$ (mPa)')
     axes[1].set_ylabel('$z$ (km)')

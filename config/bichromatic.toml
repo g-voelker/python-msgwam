@@ -1,0 +1,38 @@
+boussinesq = false
+saturate_online = false
+filter_pmf = true
+hprop = false
+
+dt = 120
+n_day = 3
+
+n_grid = 101
+grid_max = 100e3
+
+phi0 = 0
+rhobar0 = 1.2
+hh = 8.5e3
+
+N0 = 0.01
+alpha = 0.01
+kappa = 1
+
+uv_init_method = "sine_homogeneous"
+u0 = 4
+r0 = 40e3
+sig_r = 10e3
+
+source_method = "bichromatic"
+n_ray_max = 2500
+
+wvl_hor_char = 50e3
+wvl_ver_char = 5e3
+direction = 0
+
+dk_init = 1e-4
+dl_init = 1e-4
+dm_init = 2e-7
+
+bc_mom_flux = 2e-3
+r_launch = 15e3
+dr_init = 250
