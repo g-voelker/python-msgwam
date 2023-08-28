@@ -1,7 +1,7 @@
 import argparse
 
 from .config import load_config
-from .integrate import RK3Integrator
+from .integrate import SBDF2Integrator
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -10,5 +10,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     load_config(args.config_path)
-    RK3Integrator().integrate().to_netcdf(args.output_path)
-
+    SBDF2Integrator().integrate().to_netcdf(args.output_path)

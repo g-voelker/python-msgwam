@@ -102,6 +102,13 @@ class MeanFlow:
 
             return u, v
 
+        if method == 'gaussian':
+            arg = -(((self.r_centers - config.r0) / config.sig_r) ** 2)
+            u = config.u0 * np.exp(arg)
+            v = np.zeros(u.shape)
+
+            return u, v
+
         message = f'Unknown method for initializing mean flow: {method}'
         raise ValueError(message)
 

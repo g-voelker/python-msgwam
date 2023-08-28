@@ -21,6 +21,7 @@ f0: float
 N0: float
 alpha: float
 kappa: float
+nu: float
 
 uv_init_method: str
 u0: float

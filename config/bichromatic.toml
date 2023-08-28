@@ -16,10 +16,11 @@ hh = 8.5e3
 N0 = 0.01
 alpha = 0.01
 kappa = 1
+nu = 50
 
-uv_init_method = "sine_homogeneous"
-u0 = 4
-r0 = 40e3
+uv_init_method = "gaussian"
+u0 = 5
+r0 = 60e3
 sig_r = 10e3
 
 source_method = "bichromatic"
