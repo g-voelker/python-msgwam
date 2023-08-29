@@ -199,7 +199,7 @@ class RayCollection:
 
         """
 
-        below = self.r - 0.5 * self.dr < 0
+        below = self.r - 0.5 * self.dr < mean.r_faces[0]
         above = self.r + 0.5 * self.dr > mean.r_faces[-1]
         self.delete_rays(below | above)
 

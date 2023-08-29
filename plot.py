@@ -8,13 +8,14 @@ def make_plots(ds: xr.Dataset, output_path: str) -> None:
     fig, axes = plt.subplots(nrows=2, ncols=2)
     fig.set_size_inches(8, 8)
 
-    hours = ds['time'] / 3600
-    u = ds['u'] - ds['u'].isel(time=0)
+    u = ds['u']
     amax = abs(u).max()
+    hours = ds['time'] / 3600
 
+    grid = ds['grid'] / 1000
     axes[0, 0].pcolormesh(
         hours,
-        ds['grid'] / 1000,
+        grid,
         u.T,
         vmin=-amax,
         vmax=amax,
@@ -22,7 +23,7 @@ def make_plots(ds: xr.Dataset, output_path: str) -> None:
         shading='nearest'
     )
 
-    axes[0, 0].set_title('$\\Delta u$ (m s$^{-1}$)')
+    axes[0, 0].set_title('$u$ (m s$^{-1}$)')
     axes[0, 0].set_xlabel('time (hours)')
     axes[0, 0].set_ylabel('height (km)')
 
@@ -37,8 +38,8 @@ def make_plots(ds: xr.Dataset, output_path: str) -> None:
     for ax in axes.flatten():
         ax.set_xlim(0, hours.max())
 
-    axes[0, 0].set_ylim(0, 100)
-    axes[0, 1].set_ylim(0, 100)
+    axes[0, 0].set_ylim(grid.min(), grid.max())
+    axes[0, 1].set_ylim(grid.min(), grid.max())
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=400)

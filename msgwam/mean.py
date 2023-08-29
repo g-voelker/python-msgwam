@@ -16,7 +16,7 @@ class MeanFlow:
         config.load_config must have been called for initialization to succeed.
         """
 
-        self.r_faces = np.linspace(0, config.grid_max, config.n_grid)
+        self.r_faces = np.linspace(*config.grid_bounds, config.n_grid)
         self.r_centers = (self.r_faces[:-1] + self.r_faces[1:]) / 2
         self.dr = self.r_faces[1] - self.r_faces[0]
 

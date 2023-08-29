@@ -11,7 +11,7 @@ n_day: int
 n_t_max: int
 
 n_grid: int
-grid_max: float
+grid_bounds: tuple[float, float]
 
 phi0: float
 rhobar0: float
