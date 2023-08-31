@@ -65,7 +65,7 @@ def animate(ds: xr.Dataset, output_path: str) -> None:
 
         return line_u, line_pmf, dots
 
-    frames = np.linspace(0, len(u) - 1, 1440).astype(int)
+    frames = np.linspace(0, len(u) - 1, min(len(u), 1440)).astype(int)
     ani = FuncAnimation(fig, update, frames=frames, blit=True)
     ani.save(output_path, fps=24)
 
