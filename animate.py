@@ -60,13 +60,14 @@ def animate(ds: xr.Dataset, output_path: str) -> None:
         days = int(hours / 24)
         hours = hours - 24 * days
 
-        fig.suptitle(f'{days} days, {hours:.2f} hours')
+        fig.suptitle(f'{days} days, {hours:05.2f} hours')
         plt.tight_layout()
 
         return line_u, line_pmf, dots
 
-    ani = FuncAnimation(fig, update, frames=len(u), interval=15, blit=True)
-    ani.save(output_path)
+    frames = np.linspace(0, len(u) - 1, 1440).astype(int)
+    ani = FuncAnimation(fig, update, frames=frames, blit=True)
+    ani.save(output_path, fps=24)
 
 if __name__ == '__main__':
     data_path, output_path = sys.argv[1:]

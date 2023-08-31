@@ -4,7 +4,7 @@ filter_pmf = true
 hprop = false
 
 dt = 120
-n_day = 30
+n_day = 360
 
 n_grid = 101
 grid_bounds = [0, 100e3]
@@ -16,10 +16,10 @@ hh = 7e3
 N0 = 0.02
 alpha = 0.01
 kappa = 1
-nu = 100
+nu = 5
 
 uv_init_method = "gaussian"
-u0 = 18
+u0 = 8
 r0 = 60e3
 sig_r = 10e3
 
@@ -34,6 +34,6 @@ dk_init = 1e-4
 dl_init = 1e-4
 dm_init = 2e-7
 
-bc_mom_flux = 2e-3
+bc_mom_flux = 1e-4
 r_launch = 15e3
 dr_init = 250
