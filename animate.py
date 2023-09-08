@@ -47,6 +47,8 @@ def animate(ds: xr.Dataset, output_path: str) -> None:
 
     line_u, = axes[0].plot([], [], color='k')
     line_pmf, = axes[1].plot([], [], color='k')
+
+    dens[dens == 0] = np.nan
     norm = LogNorm(np.nanmin(dens), np.nanmax(dens))
     dots = axes[2].scatter([], [], 30, c=[], alpha=0.3, cmap='Greys', norm=norm)
 

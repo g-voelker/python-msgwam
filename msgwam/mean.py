@@ -130,6 +130,42 @@ class MeanFlow:
             -self.rho * config.f0 * self.u
         ))
 
+    def get_fracs(
+        self,
+        rays: RayCollection,
+        grid: Optional[np.ndarray]=None
+    ) -> np.ndarray:
+        """
+        Find the fraction of each grid cell that intersects each ray volume.
+
+        Parameters
+        ----------
+        rays
+            Current ray volume properties.
+        grid, optional
+            The edges of the vertical regions to project onto. If None, then the
+            cell faces of the mean grid are used, such that the vertical regions
+            are the cells themselves.
+
+        Returns
+        -------
+        np.ndarray
+            Fraction of each grid cell intersected by each ray. Has shape
+            (len(grid - 1), config.n_ray_max).
+
+        """
+
+        if grid is None:
+            grid = self.r_faces
+
+        r_lo = rays.r - 0.5 * rays.dr
+        r_hi = rays.r + 0.5 * rays.dr
+
+        r_mins = np.maximum(r_lo, grid[:-1, None])
+        r_maxs = np.minimum(r_hi, grid[1:, None])
+
+        return np.maximum(r_maxs - r_mins, 0) / (grid[1] - grid[0])
+
     def project(
         self,
         rays: RayCollection,
@@ -142,14 +178,14 @@ class MeanFlow:
         Parameters
         ----------
         rays
-            RayCollection containing the current properties of all ray volumes.
+            Current ray volume properties.
         data
             The data to project (for example, pseudo-momentum fluxes). Should
             have the same shape as the properties stored in rays.
         grid, optional
-            The edges of the vertical regions to project onto. If None, then
-            the cell faces of the mean grid are used, such that the vertical
-            regions are the cells themselves.
+            The edges of the vertical regions to project onto. If None, then the
+            cell faces of the mean grid are used, such that the vertical regions
+            are the cells themselves.
 
         Returns
         -------
@@ -159,17 +195,7 @@ class MeanFlow:
 
         """
 
-        if grid is None:
-            grid = self.r_faces
-
-        r_lo = rays.r - 0.5 * rays.dr
-        r_hi = rays.r + 0.5 * rays.dr
-
-        r_mins = np.maximum(r_lo, grid[:-1, None])
-        r_maxs = np.minimum(r_hi, grid[1:, None])
-        fracs = np.maximum(r_maxs - r_mins, 0) / (grid[1] - grid[0])
-
-        return np.nansum(fracs * data, axis=1)
+        return np.nansum(self.get_fracs(rays, grid) * data, axis=1)
 
     def pmf(self, rays: RayCollection) -> np.ndarray:
         """

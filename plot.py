@@ -23,7 +23,7 @@ def plot_wind(ds: xr.Dataset, output_path: str) -> None:
     )
 
     ax.set_title('$u$ (m s$^{-1}$)')
-    ax.set_xlabel('time (hours)')
+    ax.set_xlabel('time (days)')
     ax.set_ylabel('height (km)')
 
     ax.set_xlim(0, days.max())
