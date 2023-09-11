@@ -3,6 +3,7 @@ def load_config(path: str) -> None:
 
 boussinesq: bool
 saturate_online: bool
+filter_pmf: bool
 hprop: bool
 
 dt: float
@@ -10,7 +11,7 @@ n_day: int
 n_t_max: int
 
 n_grid: int
-grid_max: float
+grid_bounds: tuple[float, float]
 
 phi0: float
 rhobar0: float
@@ -20,6 +21,7 @@ f0: float
 N0: float
 alpha: float
 kappa: float
+nu: float
 
 uv_init_method: str
 u0: float

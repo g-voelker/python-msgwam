@@ -118,12 +118,12 @@ def legacy(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
 
 def monochromatic(_, rays: RayCollection) -> np.ndarray:
     """
-    Calculate ray properties for a single volume at prescribed wavenumber.
+    Calculate source data for a single ray volume at presribed wavenumber.
     """
-    
+
     r = config.r_launch
     dr = config.dr_init
-    
+
     wvn_hor = 2 * np.pi / config.wvl_hor_char
     direction = np.deg2rad(config.direction)
 
@@ -137,6 +137,18 @@ def monochromatic(_, rays: RayCollection) -> np.ndarray:
 
     volume = abs(dk * dl * dm)
     cg_r = rays.cg_r(r=r, k=k, l=l, m=m)
-    dens = config.bc_mom_flux / (k * volume * cg_r)
+    dens = config.bc_mom_flux / abs(k * volume * cg_r)
 
     return np.array([r, dr, k, l, m, dk, dl, dm, dens]).reshape(-1, 1)
+
+def bichromatic(_, rays: RayCollection) -> np.ndarray:
+    """
+    Calculate source data for two rays with opposite horizontal wavenumbers.
+    """
+
+    column = monochromatic(None, rays)
+    data = np.hstack((column, column))
+    data[2:4, 1] *= -1
+    data[-1] *= 1 / 2
+
+    return data

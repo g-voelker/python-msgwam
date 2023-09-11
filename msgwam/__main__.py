@@ -1,7 +1,8 @@
 import argparse
+import time
 
 from .config import load_config
-from .integrate import integrate
+from .integrate import SBDF2Integrator
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -10,4 +11,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     load_config(args.config_path)
-    integrate().to_netcdf(args.output_path)
+
+    start = time.time()
+    SBDF2Integrator().integrate().to_netcdf(args.output_path)
+    print(f'Integration took {(time.time() - start):.2f} s')

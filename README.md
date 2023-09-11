@@ -11,15 +11,17 @@ To run the ray tracer you will need
 
 The code can be invoked by calling the `msgwam` directory as a module. You must pass a path to a configuration TOML file and a path where the integration data can be saved in netCDF form. For example
 ```
-python -m msgwam config/legacy.toml data/legacy.nc
+python -m msgwam config/bichromatic.toml data/bichromatic.nc
 ```
 
-Several configuration files are provided in the `config` directory. Note that `desaubies.toml` and `monochromatic` may have some strange behavior at present.
+Several configuration files are provided in the `config` directory. Note that `desaubies.toml` probably behaves strangely.
 
 The plotting script `plot.py` plots several relevant properties. You can use `run.sh` with the name of a source scheme to integrate the solver and then plot the outputs, as in
 ```
-./run.sh legacy
+./run.sh bichromatic
 ```
+which produces an animation and a plot as below.
+![oscillation](oscillation.png)
 
 ## License
 The code is licensed under the Creative Commons Attribution 4.0 license. For more info see

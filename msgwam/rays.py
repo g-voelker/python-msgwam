@@ -199,7 +199,7 @@ class RayCollection:
 
         """
 
-        below = self.r - 0.5 * self.dr < 0
+        below = self.r - 0.5 * self.dr < mean.r_faces[0]
         above = self.r + 0.5 * self.dr > mean.r_faces[-1]
         self.delete_rays(below | above)
 
@@ -366,49 +366,40 @@ class RayCollection:
         cg_lat = self.cg_lonlat('lat', mean)
 
         return (self.k * cg_lon + self.l * cg_lat) / (RAD_EARTH + self.r) - grad
-
-    def max_dens(
-        self,
-        mean: MeanFlow,
-        r: Optional[np.ndarray]=None,
-        m: Optional[np.ndarray]=None,
-        dm: Optional[np.ndarray]=None
-    ) -> np.ndarray:
+    
+    def max_dens(self, mean: MeanFlow) -> np.ndarray:
         """
-        Calculate the maximum allowed wave action density according to the
-        saturation condition.
+        Calculate the maximum allowed wave action density for each ray volume
+        using the full non-monochromatic saturation scheme.
 
         Parameters
         ----------
-        mean
+        MeanFlow
             Current mean state of the system.
-        r, optional
-        m, optional
-        dm, optional
-            Vertical position, vertical wavenumber, and vertical wavenumber
-            extent to use. If any of these are None, the respective properties
-            of the waves in this collection will be used, but they can be passed
-            explicitly so that future values can be used for online saturation.
 
         Returns
         -------
         np.ndarray
-            Maximum allowed density for each ray collection.
-
+            Maximum allowed density for each ray in the collection
+        
         """
 
-        r = self.r if r is None else r
-        m = self.m if m is None else m
-        dm = self.dm if dm is None else dm
+        omega_hat = self.omega_hat()
+        volume = abs(self.dk * self.dl * self.dm)
+        K2_h = self.k ** 2 + self.l ** 2
+        K2 = K2_h + self.m ** 2
 
-        rhobar = np.interp(r, mean.r_centers, mean.rho)
-        volume = abs(self.dk * self.dl * dm)
-        omega_hat = self.omega_hat(m=m)
+        S = self.dens * self.m ** 2 * volume * K2_h / (omega_hat * K2)
+        num = mean.project(self, S) - config.alpha * mean.rho / 2
+        dem = mean.project(self, S * K2)
 
-        return (
-            (0.5 * config.kappa ** 2 * rhobar * omega_hat * config.N0 ** 2) /
-            (volume * m ** 2 * (omega_hat ** 2 - config.f0 ** 2))
-        )
+        num[num < 0] = 0
+
+        intersects = (mean.get_fracs(self) > 0).astype(int)
+        kappa = np.divide(num, dem, where=(dem != 0))[:, None]
+        weight = np.maximum(0, 1 - K2 * np.max(intersects * kappa, axis=0))
+
+        return weight * self.dens
 
     def drays_dt(self, mean: MeanFlow) -> np.ndarray:
         """
