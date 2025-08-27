@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Optional
 import numpy as np
 
 from . import config
+from. import constants
 
 if TYPE_CHECKING:
     from .rays import RayCollection
@@ -72,6 +73,13 @@ class MeanFlow:
 
         if config.boussinesq:
             return config.rhobar0 * np.ones(self.r_centers.shape)
+        
+        if config.isothermal:
+            
+            # reset stratification, density (i.e. pressure-) scale height and surface density
+            config.N0 = np.sqrt(constants.KAPPA * constants.G ** 2 / constants.R_SPECIFIC / config.T0)
+            config.hh = config.T0 * constants.R_SPECIFIC / constants.G
+            config.rhobar0 = config.p0 / constants.R_SPECIFIC / config.T0
 
         return config.rhobar0 * np.exp(-self.r_centers / config.hh)
 

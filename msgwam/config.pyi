@@ -2,6 +2,7 @@ def load_config(path: str) -> None:
     ...
 
 boussinesq: bool
+isothermal: bool
 saturate_online: bool
 filter_pmf: bool
 hprop: bool
@@ -16,6 +17,8 @@ grid_bounds: tuple[float, float]
 
 phi0: float
 rhobar0: float
+p0: float
+T0: float
 hh: float
 f0: float
 
