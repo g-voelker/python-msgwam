@@ -7,7 +7,7 @@ dt = 120
 n_day = 3
 
 n_grid = 101
-grid_max = 100e3
+grid_bounds = [0, 100e3]
 
 phi0 = 0
 rhobar0 = 1.2
@@ -16,6 +16,7 @@ hh = 8.5e3
 N0 = 0.01
 alpha = 0.01
 kappa = 1
+nu = 20
 
 uv_init_method = "sine_homogeneous"
 u0 = 4
