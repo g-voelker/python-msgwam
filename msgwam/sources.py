@@ -91,7 +91,7 @@ def wavepacket(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
 
     k = wvn_hor * np.cos(direction) * np.ones(config.n_ray)
     l = wvn_hor * np.sin(direction) * np.ones(config.n_ray)
-    m = -2 * np.pi / config.wvl_ver_char * np.ones(config.n_ray)
+    m = 2 * np.pi / config.wvl_ver_char * np.ones(config.n_ray)
 
     r_min, r_max = config.r_init_bounds
     r_edges = np.linspace(r_min, r_max, config.n_ray + 1)
@@ -105,13 +105,14 @@ def wavepacket(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
     rhobar = np.interp(r, mean.r_centers, mean.rho)
     omega_hat = rays.omega_hat(k=k, l=l, m=m)
 
-    amplitude = (
+    density_amplitude = (
         (config.alpha ** 2 * rhobar * omega_hat * config.N0 ** 2) /
         (2 * m ** 2 * (omega_hat ** 2 - config.f0 ** 2))
     )
 
-    profile = np.exp(-0.5 * ((r - config.packet_center) / config.packet_width) ** 2)
-    dens = amplitude * profile / (dk * dl * dm)
+    density_profile = np.exp(-((r - config.packet_center) / config.packet_width) ** 2)
+    
+    dens = density_amplitude * density_profile / (dk * dl * dm)
 
     return np.vstack((r, dr, k, l, m, dk, dl, dm, dens))
 

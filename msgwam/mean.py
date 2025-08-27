@@ -112,6 +112,37 @@ class MeanFlow:
         message = f'Unknown method for initializing mean flow: {method}'
         raise ValueError(message)
 
+    def init_induced_uv(self, rays: RayCollection) -> tuple[np.ndarray, np.ndarray]:
+        """Initialize the wave induced U and V winds for the given ray collection.
+
+        Parameters
+        ----------
+        rays : RayCollection
+            Ray volume collection of the model.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            Wave induced u and v components of the wind.
+        """
+        
+        wvn_hor = 2 * np.pi / config.wvl_hor_char
+        direction = np.deg2rad(config.direction)
+        
+        kk = wvn_hor * np.cos(direction)
+        ll = wvn_hor * np.sin(direction)
+        mm = 2 * np.pi / config.wvl_ver_char   
+        omega_hat = rays.omega_hat(kk, ll, mm)
+        
+        bb_amplitude = config.alpha * config.N0**2 / mm
+        bb_amplitude_profile = bb_amplitude * np.exp(-0.5 * ((self.r_centers - config.packet_center) / config.packet_width) ** 2)
+        
+        u_ind = 0.5 * kk * omega_hat * (kk**2 + ll**2 + mm**2) / (config.N0**4 * (kk**2 + ll**2)) * bb_amplitude_profile**2
+        v_ind = 0.5 * ll * omega_hat * (kk**2 + ll**2 + mm**2) / (config.N0**4 * (kk**2 + ll**2)) * bb_amplitude_profile**2
+        
+        return u_ind, v_ind
+        
+    
     def init_grad_p(self) -> np.ndarray:
         """
         Initialize the horizontal pressure gradients according to the

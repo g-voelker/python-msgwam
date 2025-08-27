@@ -5,6 +5,7 @@ boussinesq: bool
 saturate_online: bool
 filter_pmf: bool
 hprop: bool
+init_induced_wind: bool
 
 dt: float
 n_day: int
@@ -35,6 +36,8 @@ n_ray: int
 wvl_hor_char: float
 wvl_ver_char: float
 direction: float
+packet_center: float
+packet_width: float
 
 dk_init: float
 dl_init: float

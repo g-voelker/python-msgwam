@@ -21,6 +21,15 @@ class Integrator(ABC):
         mean = MeanFlow()
         rays = RayCollection(mean)
         
+        if config.init_induced_wind:
+            
+            if config.source_method != 'wavepacket':
+                raise NotImplementedError('Initialization of a wave induced wind is only implemented for the wavepacket case so far.')
+            
+            u_ind, v_ind = mean.init_induced_uv(rays)
+            mean.u += u_ind
+            mean.v += v_ind
+        
         self.int_mean = [mean]
         self.int_rays = [rays]
         self.int_pmf = [self.center(mean.pmf(rays))]

@@ -203,7 +203,7 @@ class RayCollection:
         above = self.r + 0.5 * self.dr > mean.r_faces[-1]
         self.delete_rays(below | above)
 
-        if config.source_method == 'legacy':
+        if config.source_method == 'wavepacket':
             return
 
         for i in list(self.ghosts.keys()):
@@ -451,7 +451,7 @@ class RayCollection:
 
             ddens_dt[idx] = (max_dens - self.dens)[idx] / config.dt
 
-        if config.source_method != 'legacy':
+        if config.source_method != 'wavepacket':
             idx = self.r < config.r_launch
             dm_dt[idx] = ddr_dt[idx] = ddm_dt[idx] = 0
 
