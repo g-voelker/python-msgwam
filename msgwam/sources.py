@@ -80,11 +80,10 @@ def desaubies(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
 
     return data
 
-def legacy(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
+def wavepacket(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
     """
-    Calculate source ray volumes as was done in the original version of this
-    Python code. Note that the library defaults to not launching more rays at
-    the lower boundary when this option is chosen.
+    Initialize a wave packet. Note that the library defaults to not launching
+    more rays at the lower boundary when this option is chosen.
     """
     
     wvn_hor = 2 * np.pi / config.wvl_hor_char
@@ -111,7 +110,7 @@ def legacy(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
         (2 * m ** 2 * (omega_hat ** 2 - config.f0 ** 2))
     )
 
-    profile = np.exp(-0.5 * ((r - r.mean()) / 2000) ** 2)
+    profile = np.exp(-0.5 * ((r - config.packet_center) / config.packet_width) ** 2)
     dens = amplitude * profile / (dk * dl * dm)
 
     return np.vstack((r, dr, k, l, m, dk, dl, dm, dens))
