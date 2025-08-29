@@ -25,6 +25,18 @@ def desaubies(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
     ct_min, ct_max = config.c_tilde_bounds
     ot_min, ot_max = config.omega_tilde_bounds
 
+    n_each = config.n_c_tilde * config.n_omega_tilde
+    data = np.zeros((len(rays.props), 4 * n_each))
+
+    r = (config.r_ghost - 0.5 * config.dr_init) * np.ones(n_each)
+    dr = config.dr_init * np.ones(n_each)
+    
+    # check if height dependent BVF is available
+    if hasattr(config, 'NN'):
+        NN = config.NN(r)
+    else:
+        NN = config.N0
+    
     ct_edges = np.linspace(ct_min, ct_max, config.n_c_tilde + 1)
     ot_edges = np.linspace(ot_min, ot_max, config.n_omega_tilde + 1)
 
@@ -39,31 +51,25 @@ def desaubies(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
     c_tilde = c_tilde.flatten()
     omega_tilde = omega_tilde.flatten()
 
-    m = -config.N0 / c_tilde
-    dm = m ** 2 * dct / config.N0
+    m = -NN / c_tilde
+    dm = m ** 2 * dct / NN
     wvn_hor = omega_tilde / c_tilde
     m_star = 2 * np.pi / config.wvl_ver_char
 
     G = m_star ** 3 * (
-        (c_tilde * config.N0 ** 3 * omega_tilde ** (-2 / 3)) /
-        (config.N0 ** 4 + m_star ** 4 * c_tilde ** 4)
+        (c_tilde * NN ** 3 * omega_tilde ** (-2 / 3)) /
+        (NN ** 4 + m_star ** 4 * c_tilde ** 4)
     )
 
     rhobar = np.interp(config.r_launch, mean.r_centers, mean.rho)
     C = config.bc_mom_flux / (rhobar * G.sum() * dct * dot)
-
-    n_each = config.n_c_tilde * config.n_omega_tilde
-    data = np.zeros((len(rays.props), 4 * n_each))
-
-    r = (config.r_ghost - 0.5 * config.dr_init) * np.ones(n_each)
-    dr = config.dr_init * np.ones(n_each)
 
     for i in range(4):
         direction = i * np.pi / 2
         k = wvn_hor * np.cos(direction)
         l = wvn_hor * np.sin(direction)
 
-        dk = -m * dot / config.N0
+        dk = -m * dot / NN
         dl = wvn_hor * np.pi / 2
 
         if i % 2 == 1:
@@ -72,7 +78,7 @@ def desaubies(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
         cg_r = rays.cg_r(r=r, k=k, l=l, m=m)
         dens = (
             (rhobar * C * G * c_tilde ** 5) /
-            (config.N0 * omega_tilde ** 2 * cg_r)
+            (NN * omega_tilde ** 2 * cg_r)
         )
 
         chunk = np.vstack((r, dr, k, l, m, dk, dl, dm, dens))
@@ -98,15 +104,21 @@ def wavepacket(mean: MeanFlow, rays: RayCollection) -> np.ndarray:
     dr = r_edges[1] - r_edges[0] * np.ones(config.n_ray)
     r = (r_edges[:-1] + r_edges[1:]) / 2
 
+    # check if height dependent BVF is available
+    if hasattr(config, 'NN'):
+        NN = config.NN(r)
+    else:
+        NN = config.N0
+        
     dk = config.dk_init * np.ones(config.n_ray)
     dl = config.dl_init * np.ones(config.n_ray)
     dm = config.r_m_area / dr
 
     rhobar = np.interp(r, mean.r_centers, mean.rho)
-    omega_hat = rays.omega_hat(k=k, l=l, m=m)
+    omega_hat = rays.omega_hat(k=k, l=l, m=m, r=r)
 
     density_amplitude = (
-        (config.alpha ** 2 * rhobar * omega_hat * config.N0 ** 2) /
+        (config.alpha ** 2 * rhobar * omega_hat * NN ** 2) /
         (2 * m ** 2 * (omega_hat ** 2 - config.f0 ** 2))
     )
 

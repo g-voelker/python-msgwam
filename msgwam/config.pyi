@@ -3,6 +3,7 @@ def load_config(path: str) -> None:
 
 boussinesq: bool
 isothermal: bool
+tropopause: bool
 saturate_online: bool
 filter_pmf: bool
 hprop: bool
@@ -21,6 +22,9 @@ p0: float
 T0: float
 hh: float
 f0: float
+tropopause_height: float
+tropopause_depth: float
+tropopause_reldiff_N: float
 
 N0: float
 alpha: float

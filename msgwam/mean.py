@@ -81,6 +81,39 @@ class MeanFlow:
             config.N0 = np.sqrt(constants.KAPPA * constants.G ** 2 / constants.R_SPECIFIC / config.T0)
             config.hh = config.T0 * constants.R_SPECIFIC / constants.G
             config.rhobar0 = config.p0 / constants.R_SPECIFIC / config.T0
+            
+        if config.tropopause:
+            # set auxiliary variables
+            delta_r0 = (config.grid_bounds[0] - config.tropopause_height) / config.tropopause_depth
+            delta_rs = (self.r_centers - config.tropopause_height) / config.tropopause_depth
+            
+            # set reference stratification below the tropopause layer
+            config.N0 = np.sqrt(constants.KAPPA * constants.G ** 2 / constants.R_SPECIFIC / config.T0)
+            config.rhobar0 = config.p0 / constants.R_SPECIFIC / config.T0
+            
+            # set stratification as callable
+            config.NN = lambda rr: config.N0 * (
+                1 + config.tropopause_reldiff_N / 2
+                * (1 + np.tanh((rr - config.tropopause_height) / config.tropopause_depth))
+            )
+            
+            # evaluate two integrals
+            integralN2 = .25 * config.N0**2 * config.tropopause_depth * (
+                -config.tropopause_reldiff_N**2 * np.tanh(delta_rs)
+                - 2 * (config.tropopause_reldiff_N + 1)**2 * np.log(1 - np.tanh(delta_rs))
+                + 2 * np.log(1 + np.tanh(delta_rs))
+            )
+            integralN20 = .25 * config.N0**2 * config.tropopause_depth * (
+                -config.tropopause_reldiff_N**2 * np.tanh(delta_r0)
+                - 2 * (config.tropopause_reldiff_N + 1)**2 * np.log(1 - np.tanh(delta_r0))
+                + 2 * np.log(1 + np.tanh(delta_r0))
+            )
+            
+            # set potential temperature profile from N2 integral
+            thetabar = config.T0 * np.exp((integralN2 - integralN20) / constants.G)
+            
+            # return density profile
+            return config.p0 * (config.T0 / thetabar) ** ((1.0 - constants.KAPPA) / constants.KAPPA) / thetabar / constants.R_SPECIFIC
 
         return config.rhobar0 * np.exp(-self.r_centers / config.hh)
 
@@ -135,6 +168,12 @@ class MeanFlow:
             Wave induced u and v components of the wind.
         """
         
+        # check if height dependent BVF is available
+        if hasattr(config, 'NN'):
+            NN = config.NN(self.r_centers)
+        else:
+            NN = config.N0
+            
         wvn_hor = 2 * np.pi / config.wvl_hor_char
         direction = np.deg2rad(config.direction)
         
@@ -143,12 +182,12 @@ class MeanFlow:
         mm = 2 * np.pi / config.wvl_ver_char   
         omega_hat = rays.omega_hat(kk, ll, mm)
         
-        bb_amplitude = config.alpha * config.N0**2 / mm
+        bb_amplitude = config.alpha * NN**2 / mm
         bb_amplitude_profile = bb_amplitude * np.exp(-0.5 * ((self.r_centers - config.packet_center) / config.packet_width) ** 2)
         
         if config.f0 == 0.:
-            u_ind = .5 * kk * omega_hat / (config.N0**2 * (omega_hat**2 - config.f0**2)) * bb_amplitude_profile**2
-            v_ind = .5 * ll * omega_hat / (config.N0**2 * (omega_hat**2 - config.f0**2)) * bb_amplitude_profile**2
+            u_ind = .5 * kk * omega_hat / (NN**2 * (omega_hat**2 - config.f0**2)) * bb_amplitude_profile**2
+            v_ind = .5 * ll * omega_hat / (NN**2 * (omega_hat**2 - config.f0**2)) * bb_amplitude_profile**2
         else:
             u_ind = np.zeros(bb_amplitude_profile.shape)
             v_ind = np.zeros(bb_amplitude_profile.shape)

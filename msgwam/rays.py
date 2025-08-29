@@ -218,7 +218,8 @@ class RayCollection:
         self,
         k: Optional[float | np.ndarray]=None,
         l: Optional[float | np.ndarray]=None,
-        m: Optional[float | np.ndarray]=None
+        m: Optional[float | np.ndarray]=None,
+        r: Optional[float | np.ndarray]=None,
     ) -> float | np.ndarray:
         """
         Calculate the intrinisic frequency of internal gravity waves.
@@ -245,9 +246,16 @@ class RayCollection:
         k = self.k if k is None else k
         l = self.l if l is None else l
         m = self.m if m is None else m
+        r = self.r if r is None else r
 
+        # check if height dependent BVF is available
+        if hasattr(config, 'NN'):
+            NN = config.NN(r)
+        else:
+            NN = config.N0
+            
         return np.sqrt(
-            (config.N0 ** 2 * (k ** 2 + l ** 2) + config.f0 ** 2 * m ** 2) /
+            (NN ** 2 * (k ** 2 + l ** 2) + config.f0 ** 2 * m ** 2) /
             (k ** 2 + l ** 2 + m ** 2)
         )
 
@@ -278,6 +286,12 @@ class RayCollection:
 
         if not config.hprop:
             return np.zeros(self.data.shape[1])
+        
+        # check if height dependent BVF is available
+        if hasattr(config, 'NN'):
+            NN = config.NN(self.r)
+        else:
+            NN = config.N0
 
         u_or_v = {'lon' : mean.u, 'lat' : mean.v}[coord]
         k_or_l = {'lon' : self.k, 'lat' : self.l}[coord]
@@ -287,7 +301,7 @@ class RayCollection:
         omega_hat = self.omega_hat()
 
         return wind + k_or_l * (
-            (config.N0 ** 2 - omega_hat ** 2) /
+            (NN ** 2 - omega_hat ** 2) /
             (omega_hat * wvn_sq)
         )
 
