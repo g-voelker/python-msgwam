@@ -1,6 +1,7 @@
 from __future__ import annotations
 from copy import copy
 from typing import TYPE_CHECKING, Optional
+import warnings
 
 import numpy as np
 
@@ -145,8 +146,13 @@ class MeanFlow:
         bb_amplitude = config.alpha * config.N0**2 / mm
         bb_amplitude_profile = bb_amplitude * np.exp(-0.5 * ((self.r_centers - config.packet_center) / config.packet_width) ** 2)
         
-        u_ind = 0.5 * kk * omega_hat * (kk**2 + ll**2 + mm**2) / (config.N0**4 * (kk**2 + ll**2)) * bb_amplitude_profile**2
-        v_ind = 0.5 * ll * omega_hat * (kk**2 + ll**2 + mm**2) / (config.N0**4 * (kk**2 + ll**2)) * bb_amplitude_profile**2
+        if config.f0 == 0.:
+            u_ind = .5 * kk * omega_hat / (config.N0**2 * (omega_hat**2 - config.f0**2)) * bb_amplitude_profile**2
+            v_ind = .5 * ll * omega_hat / (config.N0**2 * (omega_hat**2 - config.f0**2)) * bb_amplitude_profile**2
+        else:
+            u_ind = np.zeros(bb_amplitude_profile.shape)
+            v_ind = np.zeros(bb_amplitude_profile.shape)
+            warnings.warn('Wave-induced winds cannot be initalized in rotating settings. Setting the correspoding fields to zero.')
         
         return u_ind, v_ind
         
